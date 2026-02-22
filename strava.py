@@ -8,6 +8,7 @@ import json
 import pytz
 import re
 import sys
+import sqlite3
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -229,6 +230,51 @@ def generate_gpx(activity):
     
     return ET.tostring(gpx, encoding="utf-8").decode("utf-8")
 
+# --- SEGMENT MONITORING ---
+def init_segment_db():
+    conn = sqlite3.connect("segment_history.db")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS segment_efforts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            segment_id INTEGER NOT NULL,
+            effort_count INTEGER NOT NULL,
+            athlete_count INTEGER,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    return conn
+
+def get_segment_data(segment_id):
+    url = f"https://www.strava.com/api/v3/segments/{segment_id}"
+    headers = {"Authorization": f"Bearer {STRAVA_ACCESS_TOKEN}"}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 401:
+        refresh_access_token()
+        headers["Authorization"] = f"Bearer {STRAVA_ACCESS_TOKEN}"
+        response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        print(f"Error fetching segment {segment_id}: {response.status_code}, {response.text}")
+        return None
+    return response.json()
+
+def record_segment_efforts(segment_id):
+    data = get_segment_data(segment_id)
+    if not data:
+        return
+    
+    effort_count = data.get("effort_count")
+    athlete_count = data.get("athlete_count")
+    
+    conn = init_segment_db()
+    conn.execute(
+        "INSERT INTO segment_efforts (segment_id, effort_count, athlete_count) VALUES (?, ?, ?)",
+        (segment_id, effort_count, athlete_count)
+    )
+    conn.commit()
+    print(f"Recorded segment {segment_id}: {effort_count} efforts, {athlete_count} athletes")
+    conn.close()
+
 # --- MAIN EXECUTION BLOCK ---
 def process_activity(activity_id):
     activity_data = get_activity_data(activity_id)
@@ -269,7 +315,11 @@ def process_activity(activity_id):
 
 # Script Entry Point
 if len(sys.argv) > 1:
-    process_activity(sys.argv[1])
+    if sys.argv[1] == "--segment":
+        segment_id = int(sys.argv[2]) if len(sys.argv) > 2 else BIG_SEGMENT_ID
+        record_segment_efforts(segment_id)
+    else:
+        process_activity(sys.argv[1])
 else:
     recent_activities = get_recent_activities()
     for activity in recent_activities:
