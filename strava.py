@@ -25,7 +25,9 @@ BIG_SEGMENT_ID = 10792500
 SMALL_SEGMENT_ID = 2517149 
 
 # Path to save the GPX file
-SAVE_PATH = os.getenv("SAVE_PATH", "/var/lib/docker/volumes/dawarich_dawarich_watched/_data/markus@photing.com")
+SAVE_PATH = os.getenv("SAVE_PATH")
+if not SAVE_PATH:
+    raise ValueError("SAVE_PATH not set in .env")
 
 # --- HELPER FUNCTIONS ---
 
