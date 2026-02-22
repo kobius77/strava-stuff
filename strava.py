@@ -290,7 +290,7 @@ def record_segment_efforts(segment_id):
         send_to_webhook(diff, segment_id)
 
 def send_to_webhook(diff, segment_id):
-    webhook_url = "https://n8.oida.top/webhook/45b02c6b-986a-42f6-adb5-135e69f8e121"
+    webhook_url = "https://n8.oida.top/webhook-test/45b02c6b-986a-42f6-adb5-135e69f8e121"
     payload = {
         "effort_diff": diff,
         "segment_id": segment_id
