@@ -267,6 +267,17 @@ def record_segment_efforts(segment_id):
     athlete_count = data.get("athlete_count")
     
     conn = init_segment_db()
+    
+    last_effort = conn.execute(
+        "SELECT effort_count FROM segment_efforts WHERE segment_id = ? ORDER BY timestamp DESC LIMIT 1",
+        (segment_id,)
+    ).fetchone()
+    
+    diff = None
+    if last_effort:
+        diff = effort_count - last_effort[0]
+        print(f"Effort difference: {diff}")
+    
     conn.execute(
         "INSERT INTO segment_efforts (segment_id, effort_count, athlete_count) VALUES (?, ?, ?)",
         (segment_id, effort_count, athlete_count)
@@ -274,6 +285,24 @@ def record_segment_efforts(segment_id):
     conn.commit()
     print(f"Recorded segment {segment_id}: {effort_count} efforts, {athlete_count} athletes")
     conn.close()
+    
+    if diff is not None and diff > 0:
+        send_to_webhook(diff, segment_id)
+
+def send_to_webhook(diff, segment_id):
+    webhook_url = "https://n8.oida.top/webhook/45b02c6b-986a-42f6-adb5-135e69f8e121"
+    payload = {
+        "effort_diff": diff,
+        "segment_id": segment_id
+    }
+    try:
+        response = requests.post(webhook_url, json=payload)
+        if response.status_code in (200, 201, 202):
+            print(f"Sent {diff} to webhook")
+        else:
+            print(f"Webhook error: {response.status_code}")
+    except Exception as e:
+        print(f"Webhook request failed: {e}")
 
 # --- MAIN EXECUTION BLOCK ---
 def process_activity(activity_id):
