@@ -296,11 +296,11 @@ def send_to_webhook(diff, segment_id):
         "segment_id": segment_id
     }
     try:
-        response = requests.post(webhook_url, json=payload)
+        response = requests.post(webhook_url, json=payload, headers={"Content-Type": "application/json"})
         if response.status_code in (200, 201, 202):
             print(f"Sent {diff} to webhook")
         else:
-            print(f"Webhook error: {response.status_code}")
+            print(f"Webhook error: {response.status_code}, {response.text}")
     except Exception as e:
         print(f"Webhook request failed: {e}")
 
