@@ -286,7 +286,7 @@ def record_segment_efforts(segment_id):
     print(f"Recorded segment {segment_id}: {effort_count} efforts, {athlete_count} athletes")
     conn.close()
     
-    if diff is not None and diff > 0:
+    if diff is not None and diff >= 0:
         send_to_webhook(diff, segment_id)
 
 def send_to_webhook(diff, segment_id):
